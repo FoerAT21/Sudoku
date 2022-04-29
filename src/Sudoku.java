@@ -1,15 +1,12 @@
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Stack;
-import java.util.Scanner;
+import java.util.*;
 
 
-
-public abstract class Sudoku<Arraylist> {
+public abstract class Sudoku {
     // Each integer in the stack is a position on the board
     // Used for undo
-    private Stack<Integer> moves = new Stack<Integer>();
+    private Stack<Integer> moves = new Stack<>();
     private int[][] currentBoard;
     private int[][] correctBoard;
 
@@ -21,9 +18,63 @@ public abstract class Sudoku<Arraylist> {
     /**
      * Constructor, fills the currentBoard and correctBoard instance variables
      */
-    public Sudoku(){
-        correctBoard = createBoard();
-        currentBoard = this.fill();
+    public Sudoku() throws IOException {
+        correctBoard = getCorrectBoard();
+        currentBoard = fill();
+    }
+
+    public int[][] getCorrectBoard() throws IOException{
+        int[][] returnable = new int[9][9];
+        HashMap<String, String> boards = makeMap();
+        Random rand = new Random();
+        int boardNum = rand.nextInt(boards.size())+1;
+        String key = "Board " + boardNum;
+        String board = boards.get(key);
+        Scanner boardScanner = new Scanner(board);
+
+        int rowNum = 0;
+        int colNum = 0;
+
+        while(boardScanner.hasNextLine()){
+            String line = boardScanner.nextLine();
+            Scanner parser = new Scanner(line);
+            while(parser.hasNextInt()){
+                int input = parser.nextInt();
+                returnable[rowNum][colNum] = input;
+                colNum++;
+            }
+            rowNum++;
+            colNum=0;
+        }
+        return returnable;
+    }
+
+    private HashMap<String, String> makeMap() throws IOException{
+        HashMap<String, String> returnable = new HashMap<>();
+        Scanner fileIn = new Scanner(new File("correctBoards.txt"));
+        ArrayList<String> keys = new ArrayList<>();
+        ArrayList<String> tempBoards = new ArrayList<>();
+        String tempBoard = "";
+
+        while(fileIn.hasNextLine()){
+            String line = fileIn.nextLine();
+            if(!line.equals("")) {
+                if (line.charAt(0) == 'B'){
+                    keys.add(line.substring(0,line.indexOf(":")));
+                    line = fileIn.nextLine();
+                    while(!line.equals("")){
+                        tempBoard += line + "\n";
+                        line = fileIn.nextLine();
+                    }
+                }
+            }
+            tempBoards.add(tempBoard);
+            tempBoard = "";
+        }
+        for(int i = 0; i<tempBoards.size(); i++){
+            returnable.put(keys.get(i), tempBoards.get(i));
+        }
+        return returnable;
     }
 
     /**
@@ -96,63 +147,6 @@ public abstract class Sudoku<Arraylist> {
     public boolean taken(int row, int col){return currentBoard[row][col] != 0;}
 
     /**
-     * Creates the board that will be played with
-     * @return the board that will be played with
-     */
-    public int[][] createBoard(){
-        int[][] returnable = new int[9][9];
-        ArrayList<Integer> leftInRow = refill();
-        Random rand = new Random();
-        boolean present = false;
-        int number;
-        int index;
-        int stuckCounter = 0; // Used to check if the board has gotten stuck
-
-        for(int r = 0; r<returnable.length; r++){
-            for(int c = 0; c<returnable[0].length; c++){
-                index = rand.nextInt(leftInRow.size()); // The index being taken from the arraylist
-                number = leftInRow.get(index); // the specific value that may be put into the board
-                for(int row = 0; row<r; row++){
-                    if(returnable[row][c] == number){
-                        present = true; // True, if the number is found in the column above
-                    }
-                }
-
-                if(!present){ //Number is not present above:
-                    returnable[r][c] = number; // Adds number to board
-                    leftInRow.remove(index); //Removes that number from the list
-                }else{ // Number is present above
-                    c--; //Goes back to the same column
-                    present = false; // Reset the test for presence column
-                    stuckCounter++; // Checks if the algorithm is stuck
-                    if(stuckCounter > 6){
-                        r--;
-                        stuckCounter = 0; // Reset stuck test
-                        break; // if the row gets stuck, we reset the row and try again.
-                    }
-
-                }
-            }
-            leftInRow = refill(); // Refill the used arrayList
-        }
-        return returnable;
-    }
-
-    /**
-     * Returns a filled arraylist of 1-9, used in the createBord method to simplify the process
-     * of filling the needed arrayList
-     * @return - filled arraylist of 1-9
-     */
-    private ArrayList<Integer> refill(){
-        ArrayList<Integer> returnable = new ArrayList<>();
-        for(int i = 1; i<10; i++){
-            returnable.add(i);
-        }
-        return returnable;
-    }
-
-
-    /**
      * Prints out the current sudoku
      * @return - the current sudoku
      */
@@ -176,4 +170,37 @@ public abstract class Sudoku<Arraylist> {
         }
         return returnable.toString();
     }
+
+    public String printCorrectBoard(){
+
+        StringBuilder returnable = new StringBuilder();
+        for(int row = 0; row<correctBoard[0].length; row++){
+            for(int col = 0; col<correctBoard[0].length; col++){
+                if(correctBoard[row][col] != 0){
+                    returnable.append("|"+correctBoard[row][col] + "");
+                }else{
+                    returnable.append("| ");
+                }
+                if(col == 8){
+                    returnable.append("|");
+                }
+                if(col%3==2 && col !=8){
+                    returnable.append("|");
+                }
+            }
+            returnable.append("\n");
+        }
+        return returnable.toString();
+    }
+
+    public int[][] copyCorrectBoard(){
+        int[][] returnable = new int[9][9];
+        for(int r = 0; r<correctBoard.length; r++){
+            for(int c = 0; c<correctBoard[0].length; c++){
+                returnable[r][c] = correctBoard[r][c];
+            }
+        }
+        return returnable;
+    }
+
 }
